@@ -5,25 +5,64 @@ using Terraria.DataStructures;
 using Terraria.ModLoader;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
+using ReLogic.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.Audio;
 using AerovelenceMod.Common.Systems;
+using AerovelenceMod.Content.Items.Weapons.Misc.Magic;
 
 namespace AerovelenceMod
 {
-	public class AeroPlayer : ModPlayer
-	{
+    public class AeroPlayer : ModPlayer
+    {
+        #region Usestyle Code
+        public object useStyleData;
+        public int useStyleInt;
 
-		public float ScreenShakePower;
+        //Draw Layer
+        private class CthulhusWrathDrawLayer : PlayerDrawLayer
+        {
+            private Asset<Texture2D> texture;
+            public override bool GetDefaultVisibility(PlayerDrawSet drawInfo)
+            {
+                return drawInfo.drawPlayer.HeldItem?.type == ModContent.ItemType<CthulhusWrath>() &&
+                    drawInfo.drawPlayer.GetModPlayer<AeroPlayer>().useStyleData is (Vector2[]) &&
+                    drawInfo.drawPlayer.controlUseItem &&
+                    drawInfo.drawPlayer.CheckMana(drawInfo.drawPlayer.HeldItem);
+            }
+            public override Position GetDefaultPosition()
+            {
+                return new BeforeParent(PlayerDrawLayers.HeldItem);
+            }
+            protected override void Draw(ref PlayerDrawSet drawInfo)
+            {
+                if(texture == null)
+                    texture = ModContent.Request<Texture2D>("Terraria/Images/Projectile_"+ProjectileID.BallofFire); //Texture path
 
-		public override void ModifyScreenPosition()
-		{
-			if (ScreenShakePower > 0.1f) //Kackbrise#5454 <3 <3 Thank
-			{
-				Main.screenPosition += new Vector2(Main.rand.NextFloat(ScreenShakePower), Main.rand.NextFloat(ScreenShakePower));
-				ScreenShakePower *= 0.9f;
-			}
-		}
+                Vector2[] orbs = (Vector2[])drawInfo.drawPlayer.GetModPlayer<AeroPlayer>().useStyleData;
+                for(int i = 0; i < orbs.Length; i++)
+                {
+                    Vector2 pos = drawInfo.drawPlayer.MountedCenter + (orbs[i]*4) - Main.screenPosition;
+                    drawInfo.DrawDataCache.Add(new DrawData(texture.Value, pos, null, Color.White*.96f, orbs[i].ToRotation()-MathHelper.PiOver2, texture.Size() * .5f, 1.1f, SpriteEffects.None, 0));
+                    Lighting.AddLight(drawInfo.drawPlayer.MountedCenter + orbs[i], Color.OrangeRed.ToVector3());
+                }
+            }
+            public override void Unload()
+            {
+                texture = null;
+            }
+        }
+        #endregion
+        public float ScreenShakePower;
+
+	       public override void ModifyScreenPosition()
+	       {
+			         if (ScreenShakePower > 0.1f) //Kackbrise#5454 <3 <3 Thank
+			         {
+				            Main.screenPosition += new Vector2(Main.rand.NextFloat(ScreenShakePower), Main.rand.NextFloat(ScreenShakePower));
+				            ScreenShakePower *= 0.9f;
+			         }
+		      }
 
 		/*
 
